@@ -22,8 +22,8 @@ public class LDAP
     /// <returns>Object { bool Success, string Error, string CommonName, List&lt;SearchResult&gt; SearchResult }</returns>
     public static Result SearchObjects([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(connection.Host) || string.IsNullOrWhiteSpace(connection.User) || string.IsNullOrWhiteSpace(connection.Password))
-            throw new Exception("Connection parameters missing.");
+        if (string.IsNullOrWhiteSpace(connection.Host))
+            throw new Exception("Host is missing.");
 
         var conn = new LdapConnection();
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
@@ -43,12 +43,28 @@ public class LDAP
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
+        var ldapVersion = 0;
+        switch (connection.LDAPProtocolVersion)
+        {
+            case LDAPVersion.V2:
+                ldapVersion = 2;
+                break;
+            case LDAPVersion.V3:
+                ldapVersion = 3;
+                break;
+        }
+
         try
         {
             conn.SecureSocketLayer = connection.SecureSocketLayer;
             conn.Connect(connection.Host, connection.Port == 0 ? defaultPort : connection.Port);
-            if (connection.TLS) conn.StartTls();
-            conn.Bind(connection.User, connection.Password);
+            if (connection.TLS)
+                conn.StartTls();
+
+            if (connection.AnonymousBind)
+                conn.Bind(version: ldapVersion, dn: null, passwd: (string)null);
+            else
+                conn.Bind(version: ldapVersion, connection.User, connection.Password);
 
             LdapSearchQueue queue = conn.Search(
                 input.SearchBase, 
@@ -86,6 +102,8 @@ public class LDAP
         }
         catch (LdapException ex)
         {
+            if (connection.ThrowExceptionOnError)
+                throw;
             return new Result(false, ex.Message, null);
         }
         catch (Exception ex)

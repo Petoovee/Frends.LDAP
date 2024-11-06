@@ -25,6 +25,17 @@ public class UnitTests
     [TestInitialize]
     public void Setup()
     {
+        connection = new()
+        {
+            Host = _host,
+            User = _user,
+            Password = _pw,
+            SecureSocketLayer = false,
+            Port = _port,
+            TLS = false,
+            LDAPProtocolVersion = LDAPVersion.V3
+        };
+
         try
         {
             CreateTestUsers();
@@ -49,15 +60,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -99,15 +101,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -147,15 +140,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -197,15 +181,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -245,15 +220,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -295,15 +261,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -344,15 +301,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true) && result.SearchResult.Count == 2);
@@ -386,15 +334,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = true,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -435,15 +374,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -491,15 +421,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = atr.ToArray(),
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);

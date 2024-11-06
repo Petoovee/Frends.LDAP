@@ -46,3 +46,18 @@ public enum SearchDereference
     /// </summary>
     DerefAlways,
 }
+
+/// <summary>
+/// LDAP protocol versions.
+/// </summary>
+public enum LDAPVersion
+{
+    /// <summary>
+    /// LDAP Version 2
+    /// </summary>
+    V2,
+    /// <summary>
+    /// LDAP Version 3
+    /// </summary>
+    V3,
+}

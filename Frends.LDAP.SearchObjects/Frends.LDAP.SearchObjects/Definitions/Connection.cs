@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 namespace Frends.LDAP.SearchObjects.Definitions;
 
 /// <summary>
@@ -32,15 +33,38 @@ public class Connection
     public bool TLS { get; set; }
 
     /// <summary>
+    /// Used LDAP protocol version.
+    /// </summary>
+    /// <example>V2</example>
+    [DefaultValue(LDAPVersion.V3)]
+    public LDAPVersion LDAPProtocolVersion {  get; set; } 
+
+    /// <summary>
+    /// If enabled credentials are not used to create a bind to the LDAP server.
+    /// </summary>
+    /// <example>true</example>
+    [DefaultValue(false)]
+    public bool AnonymousBind { get; set; }
+
+    /// <summary>
     /// User.
     /// </summary>
     /// <example>Foo</example>
+    [UIHint(nameof(AnonymousBind), "", false)]
     public string User { get; set; }
 
     /// <summary>
     /// Password.
     /// </summary>
     /// <example>Bar123</example>
+    [UIHint(nameof(AnonymousBind), "", false)]
     [PasswordPropertyText]
     public string Password { get; set; }
+
+    /// <summary>
+    /// If enabled Task throws an exception when LDAP error happens.
+    /// </summary>
+    /// <example>true</example>
+    [DefaultValue(false)]
+    public bool ThrowExceptionOnError { get; set; }
 }
