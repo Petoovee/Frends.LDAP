@@ -43,7 +43,8 @@ public class LDAP
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
-        var ldapVersion = 0;
+        // Default to v3 as it's the most commonly used version
+        var ldapVersion = 3; 
         switch (connection.LDAPProtocolVersion)
         {
             case LDAPVersion.V2:
@@ -52,6 +53,8 @@ public class LDAP
             case LDAPVersion.V3:
                 ldapVersion = 3;
                 break;
+            default:
+                throw new ArgumentException("Unsupported LDAP protocol version");
         }
 
         try

@@ -34,8 +34,9 @@ public class Connection
 
     /// <summary>
     /// Used LDAP protocol version.
+    /// Warning: LDAPv2 is deprecated and has security vulnerabilities. Use LDAPv3 unless absolutely required.
     /// </summary>
-    /// <example>V2</example>
+    /// <example>LDAPVersion.V3</example>
     [DefaultValue(LDAPVersion.V3)]
     public LDAPVersion LDAPProtocolVersion { get; set; }
 
