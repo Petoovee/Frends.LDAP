@@ -37,7 +37,7 @@ public class Connection
     /// </summary>
     /// <example>V2</example>
     [DefaultValue(LDAPVersion.V3)]
-    public LDAPVersion LDAPProtocolVersion {  get; set; } 
+    public LDAPVersion LDAPProtocolVersion { get; set; }
 
     /// <summary>
     /// If enabled credentials are not used to create a bind to the LDAP server.

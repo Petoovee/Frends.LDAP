@@ -30,16 +30,16 @@ public class LDAP
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
         var searchConstraints = new LdapSearchConstraints(
-                input.MsLimit, 
-                input.ServerTimeLimit, 
-                SetSearchDereference(input), 
+                input.MsLimit,
+                input.ServerTimeLimit,
+                SetSearchDereference(input),
                 input.MaxResults,
                 false,
                 input.BatchSize,
                 null,
                 0);
-        
-        if(input.Attributes != null)
+
+        if (input.Attributes != null)
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
@@ -67,12 +67,12 @@ public class LDAP
                 conn.Bind(version: ldapVersion, connection.User, connection.Password);
 
             LdapSearchQueue queue = conn.Search(
-                input.SearchBase, 
-                SetScope(input), 
+                input.SearchBase,
+                SetScope(input),
                 input.Filter,
-                atr.ToArray(), 
-                input.TypesOnly, 
-                null, 
+                atr.ToArray(),
+                input.TypesOnly,
+                null,
                 searchConstraints);
 
             LdapMessage message;
