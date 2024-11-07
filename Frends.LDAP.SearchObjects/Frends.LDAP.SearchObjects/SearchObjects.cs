@@ -44,7 +44,7 @@ public class LDAP
                 atr.Add(i.Key.ToString());
 
         // Default to v3 as it's the most commonly used version
-        var ldapVersion = 3; 
+        var ldapVersion = 3;
         switch (connection.LDAPProtocolVersion)
         {
             case LDAPVersion.V2:
