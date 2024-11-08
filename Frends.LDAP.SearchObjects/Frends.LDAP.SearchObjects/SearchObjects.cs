@@ -25,7 +25,12 @@ public class LDAP
         if (string.IsNullOrWhiteSpace(connection.Host))
             throw new Exception("Host is missing.");
 
-        var conn = new LdapConnection();
+        LdapConnectionOptions ldco = new LdapConnectionOptions();
+
+        if (connection.IgnoreCertificates)
+            ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
+
+        LdapConnection conn = new LdapConnection(ldco);
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
