@@ -77,7 +77,7 @@ public class LDAP
             LdapSearchQueue queue = conn.Search(
                 input.SearchBase,
                 SetScope(input),
-                input.Filter,
+                string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
                 atr.ToArray(),
                 input.TypesOnly,
                 null,
