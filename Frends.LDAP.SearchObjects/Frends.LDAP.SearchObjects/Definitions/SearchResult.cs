@@ -32,5 +32,5 @@ public class AttributeSet
     /// <summary>
     /// Value.
     /// </summary>
-    public string Value { get; set; }
+    public dynamic Value { get; set; }
 }

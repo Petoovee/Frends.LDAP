@@ -64,14 +64,13 @@ public class UnitTests
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
+
         Assert.IsTrue(result.SearchResult.Any(x =>
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("sn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -110,8 +109,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -150,8 +147,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -190,8 +185,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -230,8 +223,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -270,8 +261,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -384,8 +373,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -433,8 +420,6 @@ public class UnitTests
         Assert.IsFalse(result.SearchResult.Any(x =>
             x.AttributeSet.Any(y => y.Key.Equals("sn")) ||
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&

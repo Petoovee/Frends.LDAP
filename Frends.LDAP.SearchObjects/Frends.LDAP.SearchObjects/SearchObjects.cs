@@ -4,6 +4,7 @@ using Novell.Directory.Ldap;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
 
 namespace Frends.LDAP.SearchObjects;
 
@@ -91,7 +92,8 @@ public class LDAP
                     {
                         LdapAttribute attribute = ienum.Current;
                         var attributeName = attribute.Name;
-                        var attributeVal = attribute.StringValue;
+
+                        dynamic attributeVal = attribute.StringValueArray.Length <= 1 ? attribute.StringValue : attribute.StringValueArray;
                         attributeList.Add(new AttributeSet { Key = attributeName, Value = attributeVal });
                     }
 
