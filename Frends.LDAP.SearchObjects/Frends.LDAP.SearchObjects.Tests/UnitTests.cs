@@ -439,7 +439,7 @@ public class UnitTests
         conn.Connect(_host, _port);
         conn.Bind(_user, _pw);
 
-        foreach(var i in _cns)
+        foreach (var i in _cns)
         {
             var title = i.Contains("Qwe Rty") ? "Coffee maker" : "engineer";
             LdapAttributeSet attributeSet = new();
