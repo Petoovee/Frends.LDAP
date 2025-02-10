@@ -73,7 +73,6 @@ public class Input
     /// If false, returns the names and values for attributes found.
     /// </summary>
     /// <example>false</example>
-    /// 
     [DefaultValue(false)]
     public bool TypesOnly { get; set; }
 
