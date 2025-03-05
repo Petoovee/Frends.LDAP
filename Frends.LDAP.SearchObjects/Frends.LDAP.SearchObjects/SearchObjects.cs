@@ -25,6 +25,12 @@ public class LDAP
         if (string.IsNullOrWhiteSpace(connection.Host))
             throw new Exception("Host is missing.");
 
+        if (string.IsNullOrEmpty(connection.User) && !connection.AnonymousBind)
+            throw new Exception("Username is missing.");
+
+        if (string.IsNullOrEmpty(connection.Password) && !connection.AnonymousBind)
+            throw new Exception("Password is missing.");
+
         LdapConnectionOptions ldco = new LdapConnectionOptions();
 
         if (connection.IgnoreCertificates)
@@ -59,7 +65,7 @@ public class LDAP
                 ldapVersion = 3;
                 break;
             default:
-                throw new ArgumentException("Unsupported LDAP protocol version");
+                throw new ArgumentException($"Unsupported LDAP protocol version. {connection.LDAPProtocolVersion}");
         }
 
         try
@@ -112,7 +118,7 @@ public class LDAP
         {
             if (connection.ThrowExceptionOnError)
                 throw;
-            return new Result(false, ex.Message, null);
+            return new Result(false, $"LdapException: {ex.Message}", null);
         }
         catch (Exception ex)
         {
