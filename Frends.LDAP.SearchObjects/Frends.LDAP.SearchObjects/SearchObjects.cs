@@ -26,7 +26,18 @@ public class LDAP
         if (string.IsNullOrWhiteSpace(connection.Host))
             throw new Exception("Host is missing.");
 
-        var conn = new LdapConnection();
+        if (string.IsNullOrEmpty(connection.User) && !connection.AnonymousBind)
+            throw new Exception("Username is missing.");
+
+        if (string.IsNullOrEmpty(connection.Password) && !connection.AnonymousBind)
+            throw new Exception("Password is missing.");
+
+        LdapConnectionOptions ldco = new LdapConnectionOptions();
+
+        if (connection.IgnoreCertificates)
+            ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
+
+        LdapConnection conn = new LdapConnection(ldco);
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
@@ -44,7 +55,8 @@ public class LDAP
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
-        var ldapVersion = 0;
+        // Default to v3 as it's the most commonly used version
+        var ldapVersion = 3;
         switch (connection.LDAPProtocolVersion)
         {
             case LDAPVersion.V2:
@@ -53,6 +65,8 @@ public class LDAP
             case LDAPVersion.V3:
                 ldapVersion = 3;
                 break;
+            default:
+                throw new ArgumentException($"Unsupported LDAP protocol version. {connection.LDAPProtocolVersion}");
         }
 
         try
@@ -70,7 +84,7 @@ public class LDAP
             LdapSearchQueue queue = conn.Search(
                 input.SearchBase,
                 SetScope(input),
-                input.Filter,
+                string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
                 atr.ToArray(),
                 input.TypesOnly,
                 null,
@@ -106,7 +120,7 @@ public class LDAP
         {
             if (connection.ThrowExceptionOnError)
                 throw;
-            return new Result(false, ex.Message, null);
+            return new Result(false, $"LdapException: {ex.Message}", null);
         }
         catch (Exception ex)
         {

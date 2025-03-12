@@ -27,6 +27,13 @@ public class Connection
     public bool SecureSocketLayer { get; set; }
 
     /// <summary>
+    /// Ignore server certificates
+    /// </summary>
+    /// <example>true</example>
+    [DefaultValue(false)]
+    public bool IgnoreCertificates { get; set; }
+
+    /// <summary>
     /// Connection is protected by TLS.
     /// </summary>
     /// <example>true</example>
@@ -34,8 +41,9 @@ public class Connection
 
     /// <summary>
     /// Used LDAP protocol version.
+    /// Warning: LDAPv2 is deprecated and has security vulnerabilities. Use LDAPv3 unless absolutely required.
     /// </summary>
-    /// <example>V2</example>
+    /// <example>LDAPVersion.V3</example>
     [DefaultValue(LDAPVersion.V3)]
     public LDAPVersion LDAPProtocolVersion { get; set; }
 
