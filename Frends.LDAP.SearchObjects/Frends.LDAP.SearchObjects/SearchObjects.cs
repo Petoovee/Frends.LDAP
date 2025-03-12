@@ -22,41 +22,71 @@ public class LDAP
     /// <returns>Object { bool Success, string Error, string CommonName, List&lt;SearchResult&gt; SearchResult }</returns>
     public static Result SearchObjects([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(connection.Host) || string.IsNullOrWhiteSpace(connection.User) || string.IsNullOrWhiteSpace(connection.Password))
-            throw new Exception("Connection parameters missing.");
+        if (string.IsNullOrWhiteSpace(connection.Host))
+            throw new Exception("Host is missing.");
 
-        var conn = new LdapConnection();
+        if (string.IsNullOrEmpty(connection.User) && !connection.AnonymousBind)
+            throw new Exception("Username is missing.");
+
+        if (string.IsNullOrEmpty(connection.Password) && !connection.AnonymousBind)
+            throw new Exception("Password is missing.");
+
+        LdapConnectionOptions ldco = new LdapConnectionOptions();
+
+        if (connection.IgnoreCertificates)
+            ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
+
+        LdapConnection conn = new LdapConnection(ldco);
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
         var searchConstraints = new LdapSearchConstraints(
-                input.MsLimit, 
-                input.ServerTimeLimit, 
-                SetSearchDereference(input), 
+                input.MsLimit,
+                input.ServerTimeLimit,
+                SetSearchDereference(input),
                 input.MaxResults,
                 false,
                 input.BatchSize,
                 null,
                 0);
-        
-        if(input.Attributes != null)
+
+        if (input.Attributes != null)
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
+
+        // Default to v3 as it's the most commonly used version
+        var ldapVersion = 3;
+        switch (connection.LDAPProtocolVersion)
+        {
+            case LDAPVersion.V2:
+                ldapVersion = 2;
+                break;
+            case LDAPVersion.V3:
+                ldapVersion = 3;
+                break;
+            default:
+                throw new ArgumentException($"Unsupported LDAP protocol version. {connection.LDAPProtocolVersion}");
+        }
 
         try
         {
             conn.SecureSocketLayer = connection.SecureSocketLayer;
             conn.Connect(connection.Host, connection.Port == 0 ? defaultPort : connection.Port);
-            if (connection.TLS) conn.StartTls();
-            conn.Bind(connection.User, connection.Password);
+            if (connection.TLS)
+                conn.StartTls();
+
+            if (connection.AnonymousBind)
+                conn.Bind(version: ldapVersion, dn: null, passwd: (string)null);
+            else
+                conn.Bind(version: ldapVersion, connection.User, connection.Password);
 
             LdapSearchQueue queue = conn.Search(
-                input.SearchBase, 
-                SetScope(input), 
-                input.Filter,
-                atr.ToArray(), 
-                input.TypesOnly, 
-                null, 
+                input.SearchBase,
+                SetScope(input),
+                string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
+                atr.ToArray(),
+                input.TypesOnly,
+                null,
                 searchConstraints);
 
             LdapMessage message;
@@ -86,7 +116,9 @@ public class LDAP
         }
         catch (LdapException ex)
         {
-            return new Result(false, ex.Message, null);
+            if (connection.ThrowExceptionOnError)
+                throw;
+            return new Result(false, $"LdapException: {ex.Message}", null);
         }
         catch (Exception ex)
         {
