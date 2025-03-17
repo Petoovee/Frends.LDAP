@@ -126,7 +126,8 @@ public class LDAP
 
                             if (inputAttribute.ReturnAsByteArray)
                             {
-                                attributeVal = values.Count > 1 ? values : values[0];
+                                if (values.Any())
+                                    attributeVal = values.Count > 1 ? values : values[0];
                             }
                             else
                             {
