@@ -20,7 +20,7 @@ public class UnitTests
     private readonly List<string> _cns = new() { "Tes Tuser", "Qwe Rty", "Foo Bar" };
     private readonly byte[] _photo = File.ReadAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../TestData/test.png"));
 
-    Input ? input;
+    Input? input;
     Connection? connection;
 
     [TestInitialize]

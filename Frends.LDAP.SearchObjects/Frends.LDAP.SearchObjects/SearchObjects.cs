@@ -155,7 +155,7 @@ public class LDAP
                                     ((List<string>)attributeVal).Add(encoding.GetString(byteValue));
                             }
                         }
-                        
+
                         attributeList.Add(new AttributeSet { Key = attributeName, Value = attributeVal });
                     }
 
