@@ -88,6 +88,7 @@ public enum ReturnType
     // Pragma for self-explanatory enum attributes.
 #pragma warning disable 1591, SA1602
     String,
-    Byte,
+    ByteArray,
+    Guid
 #pragma warning restore 1591, SA1602
 }

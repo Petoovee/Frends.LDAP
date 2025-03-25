@@ -111,8 +111,6 @@ public class LDAP
                         dynamic attributeVal = null;
                         var byteValues = attribute.ByteValues;
 
-                        var test = attribute.StringValueArray;
-                        var test1 = attribute.StringValue;
                         var values = new List<byte[]>();
                         while (byteValues.MoveNext())
                         {
@@ -124,10 +122,26 @@ public class LDAP
                         {
                             var inputAttribute = input.Attributes.FirstOrDefault(x => x.Key == attributeName);
 
-                            if (inputAttribute.ReturnAsByteArray)
+                            if (inputAttribute.ReturnType == ReturnType.ByteArray)
                             {
                                 if (values.Any())
                                     attributeVal = values.Count > 1 ? values : values[0];
+                            }
+                            else if (inputAttribute.ReturnType == ReturnType.Guid)
+                            {
+                                if (values.Any())
+                                {
+                                    if (values.Count > 1)
+                                    {
+                                        attributeVal = new List<string>();
+                                        foreach (var byteValue in values)
+                                            ((List<string>)attributeVal).Add(new Guid(byteValue).ToString());
+                                    }
+                                    else
+                                    {
+                                        attributeVal = new Guid(values[0]).ToString();
+                                    }
+                                }
                             }
                             else
                             {

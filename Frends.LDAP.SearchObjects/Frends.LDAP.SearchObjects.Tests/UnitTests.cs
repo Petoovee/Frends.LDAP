@@ -1,6 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Frends.LDAP.SearchObjects.Definitions;
 using Novell.Directory.Ldap;
+using System.Text;
+
 namespace Frends.LDAP.SearchObjects.Tests;
 
 [TestClass]
@@ -394,8 +396,9 @@ public class UnitTests
     {
         var atr = new List<Attributes>
         {
-            new Attributes() { Key = "photo", ReturnAsByteArray = true },
-            new Attributes() { Key = "cn", ReturnAsByteArray = false }
+            new Attributes() { Key = "photo", ReturnType = ReturnType.ByteArray },
+            new Attributes() { Key = "cn", ReturnType = ReturnType.String },
+            new Attributes() { Key = "objectGUID", ReturnType = ReturnType.Guid },
         };
 
         input = new()
@@ -415,6 +418,7 @@ public class UnitTests
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
+        
         Assert.IsTrue(result.SearchResult.Any(x =>
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")))
@@ -423,6 +427,7 @@ public class UnitTests
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("photo")))
         );
+
         Assert.AreEqual(Convert.ToBase64String(result.SearchResult.First(x => x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net")).AttributeSet.First(x => x.Key.Equals("photo")).Value), Convert.ToBase64String(_photo));
 
         Assert.IsFalse(result.SearchResult.Any(x =>
@@ -462,6 +467,7 @@ public class UnitTests
             LdapEntry newEntry = new(entry, attributeSet);
             conn.Add(newEntry);
         }
+
         conn.Disconnect();
     }
 }

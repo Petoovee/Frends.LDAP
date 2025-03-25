@@ -118,9 +118,8 @@ public class Attributes
     public string Key { get; set; }
 
     /// <summary>
-    /// Enables the return value to be returned as a byte array.
+    /// Determines the return type of the attribute.
     /// </summary>
-    /// <example>true</example>
-    [DefaultValue(false)]
-    public bool ReturnAsByteArray { get; set; }
+    [DefaultValue(ReturnType.String)]
+    public ReturnType ReturnType { get; set; }
 }
