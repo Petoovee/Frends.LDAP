@@ -133,7 +133,7 @@ public class LDAP
         }
     }
 
-    internal static void AddAttributeValueToList(Input input, LdapAttribute attribute, Dictionary<string,dynamic> attributeDict, Encoding encoding, CancellationToken cancellationToken)
+    internal static void AddAttributeValueToList(Input input, LdapAttribute attribute, Dictionary<string, dynamic> attributeDict, Encoding encoding, CancellationToken cancellationToken)
     {
         var attributeName = attribute.Name;
         var byteValues = attribute.ByteValues;
