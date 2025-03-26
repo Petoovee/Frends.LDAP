@@ -76,6 +76,7 @@ public class Input
     /// Specifies the encoding of the content.
     /// </summary>
     /// <example>ContentEncoding.UTF8</example>
+    [DefaultValue(ContentEncoding.Default)]
     public ContentEncoding ContentEncoding { get; set; }
 
     /// <summary>
