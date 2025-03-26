@@ -418,7 +418,7 @@ public class UnitTests
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
-        
+
         Assert.IsTrue(result.SearchResult.Any(x =>
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")))
@@ -444,6 +444,55 @@ public class UnitTests
             x.DistinguishedName.Equals("CN=Foo Bar,ou=users,dc=wimpi,dc=net") ||
             x.DistinguishedName.Equals("uid=test,ou=users,dc=wimpi,dc=net") ||
             x.DistinguishedName.Equals("CN=Qwe Rty,ou=users,dc=wimpi,dc=net")));
+    }
+
+    [TestMethod]
+    public void Search_TestMissingParameters()
+    {
+        var conns = new Connection[]
+        {
+            new()
+            {
+                Host = "",
+                User = "",
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            },
+            new()
+            {
+                Host = _host,
+                User = "",
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            },
+            new()
+            {
+                Host = _host,
+                User = _user,
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            }
+        };
+
+        var errors = new string[] { "Host is missing.", "Username is missing.", "Password is missing." };
+
+        var index = 0;
+
+        foreach (var conn in conns)
+        {
+            var ex = Assert.ThrowsException<Exception>(() => LDAP.SearchObjects(input, conn, default));
+            Assert.AreEqual(errors[index], ex.Message);
+            index++;
+        }
     }
 
     public void CreateTestUsers()
