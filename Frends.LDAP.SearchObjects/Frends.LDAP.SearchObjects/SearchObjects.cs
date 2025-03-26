@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using System.Text;
+using System.Net.NetworkInformation;
 
 namespace Frends.LDAP.SearchObjects;
 
@@ -34,6 +36,8 @@ public class LDAP
 
         LdapConnectionOptions ldco = new LdapConnectionOptions();
 
+        var encoding = GetEncoding(input.ContentEncoding, input.ContentEncodingString, input.EnableBom);
+
         if (connection.IgnoreCertificates)
             ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
 
@@ -51,7 +55,7 @@ public class LDAP
                 null,
                 0);
 
-        if (input.Attributes != null)
+        if (input.Attributes != null && input.SearchOnlySpecifiedAttributes)
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
@@ -93,25 +97,21 @@ public class LDAP
             LdapMessage message;
             while ((message = queue.GetResponse()) != null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 if (message is LdapSearchResult ldapSearchResult)
                 {
                     var entry = ldapSearchResult.Entry;
-                    var attributeList = new List<AttributeSet>();
+                    var attributeDict = new Dictionary<string, dynamic>();
                     var getAttributeSet = entry.GetAttributeSet();
                     var ienum = getAttributeSet.GetEnumerator();
 
                     while (ienum.MoveNext())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         LdapAttribute attribute = ienum.Current;
-                        var attributeName = attribute.Name;
-
-                        dynamic attributeVal = attribute.StringValueArray.Length <= 1 ? attribute.StringValue : attribute.StringValueArray;
-                        attributeList.Add(new AttributeSet { Key = attributeName, Value = attributeVal });
+                        AddAttributeValueToList(input, attribute, attributeDict, encoding, cancellationToken);
                     }
 
-                    searchResults.Add(new SearchResult() { DistinguishedName = entry.Dn, AttributeSet = attributeList });
+                    searchResults.Add(new SearchResult() { DistinguishedName = entry.Dn, AttributeSet = attributeDict });
                 }
             }
             return new Result(true, null, searchResults);
@@ -131,6 +131,76 @@ public class LDAP
             if (connection.TLS) conn.StopTls();
             conn.Disconnect();
         }
+    }
+
+    internal static void AddAttributeValueToList(Input input, LdapAttribute attribute, Dictionary<string, dynamic> attributeDict, Encoding encoding, CancellationToken cancellationToken)
+    {
+        var attributeName = attribute.Name;
+        var byteValues = attribute.ByteValues;
+
+        var values = new List<byte[]>();
+        while (byteValues.MoveNext())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            values.Add(byteValues.Current);
+        }
+
+        dynamic attributeVal = null;
+
+        if (input.Attributes != null && input.Attributes.Any(x => x.Key == attributeName))
+        {
+            var inputAttribute = input.Attributes.FirstOrDefault(x => x.Key == attributeName);
+
+            if (inputAttribute.ReturnType == ReturnType.ByteArray)
+            {
+                if (values.Any())
+                    attributeVal = values.Count > 1 ? values : values[0];
+            }
+            else if (inputAttribute.ReturnType == ReturnType.Guid)
+            {
+                if (values.Any())
+                {
+                    if (values.Count > 1)
+                    {
+                        attributeVal = new List<string>();
+                        foreach (var byteValue in values)
+                            ((List<string>)attributeVal).Add(new Guid(byteValue).ToString());
+                    }
+                    else
+                    {
+                        attributeVal = new Guid(values[0]).ToString();
+                    }
+                }
+            }
+            else
+            {
+                if (values.Count == 1)
+                {
+                    attributeVal = encoding.GetString(values[0]);
+                }
+                else if (values.Count > 1)
+                {
+                    attributeVal = new List<string>();
+                    foreach (var byteValue in values)
+                        ((List<string>)attributeVal).Add(encoding.GetString(byteValue));
+                }
+            }
+        }
+        else
+        {
+            if (values.Count == 1)
+            {
+                attributeVal = encoding.GetString(values[0]);
+            }
+            else if (values.Count > 1)
+            {
+                attributeVal = new List<string>();
+                foreach (var byteValue in values)
+                    ((List<string>)attributeVal).Add(encoding.GetString(byteValue));
+            }
+        }
+
+        attributeDict.Add(attributeName, attributeVal);
     }
 
     internal static int SetScope(Input input)
@@ -153,6 +223,19 @@ public class LDAP
             SearchDereference.DerefFinding => 2,
             SearchDereference.DerefAlways => 3,
             _ => throw new Exception("SetSearchConstraint error: Invalid search constraint."),
+        };
+    }
+
+    internal static Encoding GetEncoding(ContentEncoding encoding, string encodingString, bool enableBom)
+    {
+        return encoding switch
+        {
+            ContentEncoding.UTF8 => enableBom ? new UTF8Encoding(true) : new UTF8Encoding(false),
+            ContentEncoding.ASCII => new ASCIIEncoding(),
+            ContentEncoding.Default => Encoding.Default,
+            ContentEncoding.WINDOWS1252 => CodePagesEncodingProvider.Instance.GetEncoding("windows-1252"),
+            ContentEncoding.Other => CodePagesEncodingProvider.Instance.GetEncoding(encodingString),
+            _ => throw new ArgumentOutOfRangeException($"Unknown Encoding type: '{encoding}'."),
         };
     }
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.0.0] - 2025-03-17
+### Added
+[Breaking]
+- Updated to version 3.0.0 with enhanced LDAP search capabilities.
+- Added support for selecting custom attributes, allowing users to receive attribute values as either text, byte array or Guid.
+- Introduced new encoding options—including BOM support and various encoding choices—for improved handling of search results.
+- Enabled an option to return only specified attributes, enhancing control over the output.
+- Added functionality to handle photo attributes in LDAP entries.
+- Enhanced flexibility in specifying content encoding for search results.
+- New methods and properties for improved search input handling and attribute retrieval.
+- Changed the Result object to be a dictionary of string, object to allow for more flexibility in the output.
+
+### Upgrade Instructions
+- Task's default values for new and changed parameters are configured to match the previous behavior. If you want to use the new functionality, you will need to update the parameters accordingly.
+	- 'SearchOnlySpecifiedAttributes' parameter defaults to true which was the previous behavior. If you just want to specify certain attributes' types, set it to false. If not enabled the non specified attributes will be returned as string typed.
+	- 'ContentEncoding' parameter defaults to the Agent's default encoding. If you want to use a different encoding, set it to the desired encoding.
+- Task's output has been updated to reflect the new Result object structure. This will have impact on how the Result object can be manipulated in other elements.
+
 ## [2.1.0] - 2025-01-02
 ### Fixed
 - Fixed issue with AttributeSet not having all values that were returned from LDAP search.
