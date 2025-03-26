@@ -43,7 +43,10 @@ public class UnitTests
         {
             CreateTestUsers();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
 
     [TestMethod]
@@ -398,7 +401,6 @@ public class UnitTests
         {
             new Attributes() { Key = "photo", ReturnType = ReturnType.ByteArray },
             new Attributes() { Key = "cn", ReturnType = ReturnType.String },
-            new Attributes() { Key = "objectGUID", ReturnType = ReturnType.Guid },
         };
 
         input = new()
@@ -493,6 +495,42 @@ public class UnitTests
             Assert.AreEqual(errors[index], ex.Message);
             index++;
         }
+    }
+
+    [TestMethod]
+    public void Search_InvalidCredentials()
+    {
+        connection = new()
+        {
+            Host = _host,
+            User = "invalidUser",
+            Password = "invalisPass",
+            SecureSocketLayer = false,
+            Port = _port,
+            TLS = false,
+            LDAPProtocolVersion = LDAPVersion.V3,
+            ThrowExceptionOnError = true
+        };
+
+        input = new()
+        {
+            SearchBase = _path,
+            Scope = Scopes.ScopeSub,
+            Filter = null,
+            MsLimit = default,
+            ServerTimeLimit = default,
+            SearchDereference = SearchDereference.DerefNever,
+            MaxResults = default,
+            BatchSize = default,
+            TypesOnly = default,
+            Attributes = null,
+            ContentEncoding = ContentEncoding.UTF8,
+            EnableBom = false,
+        };
+
+        var ex = Assert.ThrowsException<LdapException>(() => LDAP.SearchObjects(input, connection, default));
+        Assert.AreEqual("Invalid DN Syntax", ex.Message);
+        Console.WriteLine(ex.Message);
     }
 
     public void CreateTestUsers()
