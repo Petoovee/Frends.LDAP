@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.1.0] - 2025-04-01
+### Added
+- Added example values for new parameters.
+
 ## [3.0.0] - 2025-03-17
 ### Added
 [Breaking]

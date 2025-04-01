@@ -97,13 +97,21 @@ public class Input
     /// Determine if only specified attributes should be returned.
     /// This allows user to specify encoding and type for certain attributes.
     /// </summary>
+    /// <example>false</example>
     [DefaultValue(true)]
     public bool SearchOnlySpecifiedAttributes { get; set; }
 
     /// <summary>
     /// The names of attributes to retrieve.
     /// </summary>
-    /// <example>cn</example>
+    /// <example>
+    /// new Attributes[]
+    /// {
+    ///     new Attributes { Key = "title", ReturnType = ReturnType.String },
+    ///     new Attributes { Key = "objectGUID", ReturnType = ReturnType.Guid },
+    ///     new Attributes { Key = "photo", ReturnType = ReturnType.ByteArray }
+    /// }
+    /// </example>
     public Attributes[] Attributes { get; set; } = Array.Empty<Attributes>();
 }
 
@@ -121,6 +129,7 @@ public class Attributes
     /// <summary>
     /// Determines the return type of the attribute.
     /// </summary>
+    /// <example>ReturnType.Guid</example>
     [DefaultValue(ReturnType.String)]
     public ReturnType ReturnType { get; set; }
 }
