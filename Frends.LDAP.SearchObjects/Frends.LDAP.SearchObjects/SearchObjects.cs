@@ -5,6 +5,9 @@ using Novell.Directory.Ldap.Controls;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
+using System.Text;
+using System.Net.NetworkInformation;
 
 namespace Frends.LDAP.SearchObjects;
 
@@ -23,34 +26,69 @@ public class LDAP
     /// <returns>Object { bool Success, string Error, string CommonName, List&lt;SearchResult&gt; SearchResult }</returns>
     public static Result SearchObjects([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(connection.Host) || string.IsNullOrWhiteSpace(connection.User) || string.IsNullOrWhiteSpace(connection.Password))
-            throw new ArgumentException("Connection parameters missing.");
+        if (string.IsNullOrWhiteSpace(connection.Host))
+            throw new Exception("Host is missing.");
+
+        if (string.IsNullOrEmpty(connection.User) && !connection.AnonymousBind)
+            throw new Exception("Username is missing.");
+
+        if (string.IsNullOrEmpty(connection.Password) && !connection.AnonymousBind)
+            throw new Exception("Password is missing.");
+
+        LdapConnectionOptions ldco = new LdapConnectionOptions();
+
+        var encoding = GetEncoding(input.ContentEncoding, input.ContentEncodingString, input.EnableBom);
+
+        if (connection.IgnoreCertificates)
+            ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
 
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
 
         var searchConstraints = new LdapSearchConstraints(
-            input.MsLimit,
-            input.ServerTimeLimit,
-            SetSearchDereference(input),
-            input.MaxResults,
-            false,
-            input.BatchSize,
-            null,
-            0);
+                input.MsLimit,
+                input.ServerTimeLimit,
+                SetSearchDereference(input),
+                input.MaxResults,
+                false,
+                input.BatchSize,
+                null,
+                0
+        );
 
-        if (input.Attributes != null)
+        if (input.Attributes != null && input.SearchOnlySpecifiedAttributes)
             foreach (var i in input.Attributes)
                 atr.Add(i.Key.ToString());
 
+        // Default to v3 as it's the most commonly used version
+        var ldapVersion = 3;
+        switch (connection.LDAPProtocolVersion)
+        {
+            case LDAPVersion.V2:
+                ldapVersion = 2;
+                break;
+            case LDAPVersion.V3:
+                ldapVersion = 3;
+                break;
+            default:
+                throw new ArgumentException($"Unsupported LDAP protocol version. {connection.LDAPProtocolVersion}");
+        }
+
         try
         {
-            using var conn = new LdapConnection();
+            using var conn = new LdapConnection(ldco);
             conn.SecureSocketLayer = connection.SecureSocketLayer;
             conn.Connect(connection.Host, connection.Port == 0 ? defaultPort : connection.Port);
-            if (connection.TLS) conn.StartTls();
-            conn.Bind(connection.User, connection.Password);
+            
+            if (connection.TLS)
+                conn.StartTls();
+
+            if (connection.AnonymousBind)
+                conn.Bind(version: ldapVersion, dn: null, passwd: (string)null);
+            else
+                conn.Bind(version: ldapVersion, connection.User, connection.Password);
+          
             byte[] cookie = null;
 
             do
@@ -58,23 +96,25 @@ public class LDAP
                 var pagedResultsControl = new SimplePagedResultsControl(input.PageSize, cookie);
                 searchConstraints.SetControls(pagedResultsControl);
 
-                var queue = conn.Search(
+                LdapSearchQueue queue = conn.Search(
                     input.SearchBase,
                     SetScope(input),
-                    input.Filter,
+                    string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
                     atr.ToArray(),
                     input.TypesOnly,
                     null,
                     searchConstraints);
 
-                ProcessSearchResults(queue, searchResults, cancellationToken, ref cookie);
+                ProcessSearchResults(queue, searchResults, cancellationToken, encoding, input, ref cookie);
             } while (cookie != null && cookie.Length > 0);
 
             return new Result(true, null, searchResults);
         }
         catch (LdapException ex)
         {
-            return new Result(false, ex.Message, null);
+            if (connection.ThrowExceptionOnError)
+                throw;
+            return new Result(false, $"LdapException: {ex.Message}", null);
         }
         catch (Exception ex)
         {
@@ -82,7 +122,7 @@ public class LDAP
         }
     }
 
-    private static void ProcessSearchResults(LdapSearchQueue queue, List<SearchResult> searchResults, CancellationToken cancellationToken, ref byte[] cookie)
+    private static void ProcessSearchResults(LdapSearchQueue queue, List<SearchResult> searchResults, CancellationToken cancellationToken, Encoding encoding, Input input, ref byte[] cookie)
     {
         LdapMessage message;
         while ((message = queue.GetResponse()) != null)
@@ -92,14 +132,18 @@ public class LDAP
             if (message is LdapSearchResult ldapSearchResult)
             {
                 var entry = ldapSearchResult.Entry;
-                var attributeList = new List<AttributeSet>();
+                var attributeDict = new Dictionary<string, dynamic>();
+                var getAttributeSet = entry.GetAttributeSet();
+                var ienum = getAttributeSet.GetEnumerator();
 
-                foreach (LdapAttribute attribute in entry.GetAttributeSet())
+                while (ienum.MoveNext())
                 {
-                    attributeList.Add(new AttributeSet { Key = attribute.Name, Value = attribute.StringValue });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    LdapAttribute attribute = ienum.Current;
+                    AddAttributeValueToList(input, attribute, attributeDict, encoding, cancellationToken);
                 }
 
-                searchResults.Add(new SearchResult { DistinguishedName = entry.Dn, AttributeSet = attributeList });
+                searchResults.Add(new SearchResult() { DistinguishedName = entry.Dn, AttributeSet = attributeDict });
             }
             else if (message is LdapResponse ldapResponse)
             {
@@ -116,6 +160,76 @@ public class LDAP
                 }
             }
         }
+    }
+
+    internal static void AddAttributeValueToList(Input input, LdapAttribute attribute, Dictionary<string, dynamic> attributeDict, Encoding encoding, CancellationToken cancellationToken)
+    {
+        var attributeName = attribute.Name;
+        var byteValues = attribute.ByteValues;
+
+        var values = new List<byte[]>();
+        while (byteValues.MoveNext())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            values.Add(byteValues.Current);
+        }
+
+        dynamic attributeVal = null;
+
+        if (input.Attributes != null && input.Attributes.Any(x => x.Key == attributeName))
+        {
+            var inputAttribute = input.Attributes.FirstOrDefault(x => x.Key == attributeName);
+
+            if (inputAttribute.ReturnType == ReturnType.ByteArray)
+            {
+                if (values.Any())
+                    attributeVal = values.Count > 1 ? values : values[0];
+            }
+            else if (inputAttribute.ReturnType == ReturnType.Guid)
+            {
+                if (values.Any())
+                {
+                    if (values.Count > 1)
+                    {
+                        attributeVal = new List<string>();
+                        foreach (var byteValue in values)
+                            ((List<string>)attributeVal).Add(new Guid(byteValue).ToString());
+                    }
+                    else
+                    {
+                        attributeVal = new Guid(values[0]).ToString();
+                    }
+                }
+            }
+            else
+            {
+                if (values.Count == 1)
+                {
+                    attributeVal = encoding.GetString(values[0]);
+                }
+                else if (values.Count > 1)
+                {
+                    attributeVal = new List<string>();
+                    foreach (var byteValue in values)
+                        ((List<string>)attributeVal).Add(encoding.GetString(byteValue));
+                }
+            }
+        }
+        else
+        {
+            if (values.Count == 1)
+            {
+                attributeVal = encoding.GetString(values[0]);
+            }
+            else if (values.Count > 1)
+            {
+                attributeVal = new List<string>();
+                foreach (var byteValue in values)
+                    ((List<string>)attributeVal).Add(encoding.GetString(byteValue));
+            }
+        }
+
+        attributeDict.Add(attributeName, attributeVal);
     }
 
     internal static int SetScope(Input input)
@@ -138,6 +252,19 @@ public class LDAP
             SearchDereference.DerefFinding => 2,
             SearchDereference.DerefAlways => 3,
             _ => throw new Exception("SetSearchConstraint error: Invalid search constraint."),
+        };
+    }
+
+    internal static Encoding GetEncoding(ContentEncoding encoding, string encodingString, bool enableBom)
+    {
+        return encoding switch
+        {
+            ContentEncoding.UTF8 => enableBom ? new UTF8Encoding(true) : new UTF8Encoding(false),
+            ContentEncoding.ASCII => new ASCIIEncoding(),
+            ContentEncoding.Default => Encoding.Default,
+            ContentEncoding.WINDOWS1252 => CodePagesEncodingProvider.Instance.GetEncoding("windows-1252"),
+            ContentEncoding.Other => CodePagesEncodingProvider.Instance.GetEncoding(encodingString),
+            _ => throw new ArgumentOutOfRangeException($"Unknown Encoding type: '{encoding}'."),
         };
     }
 }

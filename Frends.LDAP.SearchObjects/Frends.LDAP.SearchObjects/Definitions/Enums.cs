@@ -46,3 +46,49 @@ public enum SearchDereference
     /// </summary>
     DerefAlways,
 }
+
+/// <summary>
+/// LDAP protocol versions.
+/// </summary>
+public enum LDAPVersion
+{
+    /// <summary>
+    /// LDAP Version 2
+    /// </summary>
+    V2,
+    /// <summary>
+    /// LDAP Version 3
+    /// </summary>
+    V3,
+}
+
+/// <summary>
+/// Enumeration of file encoding options.
+/// </summary>
+public enum ContentEncoding
+{
+    // Pragma for self-explanatory enum attributes.
+#pragma warning disable 1591, SA1602
+    UTF8,
+    Default,
+    ASCII,
+    WINDOWS1252,
+#pragma warning restore 1591, SA1602
+    /// <summary>
+    /// Other enables users to add other encoding options as string.
+    /// </summary>
+    Other,
+}
+
+/// <summary>
+/// Enumeration of return types.
+/// </summary>
+public enum ReturnType
+{
+    // Pragma for self-explanatory enum attributes.
+#pragma warning disable 1591, SA1602
+    String,
+    ByteArray,
+    Guid
+#pragma warning restore 1591, SA1602
+}
