@@ -1,6 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Frends.LDAP.SearchObjects.Definitions;
 using Novell.Directory.Ldap;
+using System.Text;
+
 namespace Frends.LDAP.SearchObjects.Tests;
 
 [TestClass]
@@ -18,6 +20,7 @@ public class UnitTests
     private readonly string? _pw = "secret";
     private readonly string _path = "ou=users,dc=wimpi,dc=net";
     private readonly List<string> _cns = new() { "Tes Tuser", "Qwe Rty", "Foo Bar" };
+    private readonly byte[] _photo = File.ReadAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../TestData/test.png"));
 
     Input? input;
     Connection? connection;
@@ -25,12 +28,24 @@ public class UnitTests
     [TestInitialize]
     public void Setup()
     {
+        connection = new()
+        {
+            Host = _host,
+            User = _user,
+            Password = _pw,
+            SecureSocketLayer = false,
+            Port = _port,
+            TLS = false,
+            LDAPProtocolVersion = LDAPVersion.V3
+        };
+
         try
         {
             CreateTestUsers();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
         }
     }
 
@@ -49,27 +64,19 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
+            ContentEncoding = ContentEncoding.UTF8,
+            EnableBom = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
+
         Assert.IsTrue(result.SearchResult.Any(x =>
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("sn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -99,15 +106,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -117,8 +115,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -148,15 +144,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -166,8 +153,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -197,15 +182,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -215,8 +191,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -246,15 +220,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -264,8 +229,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -295,15 +258,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
@@ -313,8 +267,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -343,15 +295,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = default,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -386,15 +329,6 @@ public class UnitTests
             BatchSize = default,
             TypesOnly = true,
             Attributes = null,
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
@@ -437,15 +371,6 @@ public class UnitTests
             TypesOnly = default,
             Attributes = null,
         };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
-        };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true) && result.SearchResult.Count == 2);
@@ -455,8 +380,6 @@ public class UnitTests
             x.AttributeSet.Any(y => y.Value.Equals("Tuser")) &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -477,7 +400,8 @@ public class UnitTests
     {
         var atr = new List<Attributes>
         {
-            new Attributes() { Key = "cn" }
+            new Attributes() { Key = "photo", ReturnType = ReturnType.ByteArray },
+            new Attributes() { Key = "cn", ReturnType = ReturnType.String },
         };
 
         input = new()
@@ -491,30 +415,27 @@ public class UnitTests
             MaxResults = default,
             BatchSize = default,
             TypesOnly = default,
+            SearchOnlySpecifiedAttributes = true,
             Attributes = atr.ToArray(),
-        };
-        connection = new()
-        {
-            Host = _host,
-            User = _user,
-            Password = _pw,
-            SecureSocketLayer = false,
-            Port = _port,
-            TLS = false,
         };
 
         var result = LDAP.SearchObjects(input, connection, default);
         Assert.IsTrue(result.Success.Equals(true));
+
         Assert.IsTrue(result.SearchResult.Any(x =>
             x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
             x.AttributeSet.Any(y => y.Key.Equals("cn")))
         );
+        Assert.IsTrue(result.SearchResult.Any(x =>
+            x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net") &&
+            x.AttributeSet.Any(y => y.Key.Equals("photo")))
+        );
+
+        Assert.AreEqual(Convert.ToBase64String(result.SearchResult.First(x => x.DistinguishedName.Equals("CN=Tes Tuser,ou=users,dc=wimpi,dc=net")).AttributeSet.First(x => x.Key.Equals("photo")).Value), Convert.ToBase64String(_photo));
 
         Assert.IsFalse(result.SearchResult.Any(x =>
             x.AttributeSet.Any(y => y.Key.Equals("sn")) ||
             x.AttributeSet.Any(y => y.Value.Equals("Tes Tuser")) &&
-            x.AttributeSet.Any(y => y.Key.Equals("objectclass")) &&
-            x.AttributeSet.Any(y => y.Value.Equals("top")) &&
             x.AttributeSet.Any(y => y.Key.Equals("givenname")) &&
             x.AttributeSet.Any(y => y.Value.Equals("Te")) &&
             x.AttributeSet.Any(y => y.Key.Equals("title")) &&
@@ -528,13 +449,98 @@ public class UnitTests
             x.DistinguishedName.Equals("CN=Qwe Rty,ou=users,dc=wimpi,dc=net")));
     }
 
+    [TestMethod]
+    public void Search_TestMissingParameters()
+    {
+        var conns = new Connection[]
+        {
+            new()
+            {
+                Host = "",
+                User = "",
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            },
+            new()
+            {
+                Host = _host,
+                User = "",
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            },
+            new()
+            {
+                Host = _host,
+                User = _user,
+                Password = "",
+                SecureSocketLayer = false,
+                Port = 0,
+                TLS = false,
+                LDAPProtocolVersion = LDAPVersion.V3
+            }
+        };
+
+        var errors = new string[] { "Host is missing.", "Username is missing.", "Password is missing." };
+
+        var index = 0;
+
+        foreach (var conn in conns)
+        {
+            var ex = Assert.ThrowsException<Exception>(() => LDAP.SearchObjects(input, conn, default));
+            Assert.AreEqual(errors[index], ex.Message);
+            index++;
+        }
+    }
+
+    [TestMethod]
+    public void Search_InvalidCredentials()
+    {
+        connection = new()
+        {
+            Host = _host,
+            User = "invalidUser",
+            Password = "invalisPass",
+            SecureSocketLayer = false,
+            Port = _port,
+            TLS = false,
+            LDAPProtocolVersion = LDAPVersion.V3,
+            ThrowExceptionOnError = true
+        };
+
+        input = new()
+        {
+            SearchBase = _path,
+            Scope = Scopes.ScopeSub,
+            Filter = null,
+            MsLimit = default,
+            ServerTimeLimit = default,
+            SearchDereference = SearchDereference.DerefNever,
+            MaxResults = default,
+            BatchSize = default,
+            TypesOnly = default,
+            Attributes = null,
+            ContentEncoding = ContentEncoding.UTF8,
+            EnableBom = false,
+        };
+
+        var ex = Assert.ThrowsException<LdapException>(() => LDAP.SearchObjects(input, connection, default));
+        Assert.AreEqual("Invalid DN Syntax", ex.Message);
+        Console.WriteLine(ex.Message);
+    }
+
     public void CreateTestUsers()
     {
         LdapConnection conn = new();
         conn.Connect(_host, _port);
         conn.Bind(_user, _pw);
 
-        foreach(var i in _cns)
+        foreach (var i in _cns)
         {
             var title = i.Contains("Qwe Rty") ? "Coffee maker" : "engineer";
             LdapAttributeSet attributeSet = new();
@@ -543,11 +549,13 @@ public class UnitTests
             attributeSet.Add(new LdapAttribute("givenname", i[..2]));
             attributeSet.Add(new LdapAttribute("sn", i[4..]));
             attributeSet.Add(new LdapAttribute("title", title));
+            attributeSet.Add(new LdapAttribute("photo", _photo));
 
             var entry = $"CN={i},{_path}";
             LdapEntry newEntry = new(entry, attributeSet);
             conn.Add(newEntry);
         }
+
         conn.Disconnect();
     }
 }
