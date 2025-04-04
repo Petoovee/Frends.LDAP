@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0] - 2025-04-04
+### Added
+- [Breaking] - Parameter for PageSize to control how many entries are fetched per page during an LDAP search.
+- Default value for the new parameter:
+  - PageSize: 500
+- If you want the Task to work exactly as before (non-paged search), set PageSize = 0.
+- Default paging behavior (PageSize = 500) may improve performance on large result sets, 
+  but changes how results are retrieved from the server.
+
 ## [3.1.0] - 2025-04-01
 ### Added
 - Added example values for new parameters.

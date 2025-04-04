@@ -93,8 +93,11 @@ public class LDAP
 
             do
             {
-                var pagedResultsControl = new SimplePagedResultsControl(input.PageSize, cookie);
-                searchConstraints.SetControls(pagedResultsControl);
+                if (input.PageSize > 0)
+                {
+                    var pagedResultsControl = new SimplePagedResultsControl(input.PageSize, cookie);
+                    searchConstraints.SetControls(pagedResultsControl);
+                }
 
                 LdapSearchQueue queue = conn.Search(
                     input.SearchBase,

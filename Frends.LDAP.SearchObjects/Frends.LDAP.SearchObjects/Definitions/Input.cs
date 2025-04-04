@@ -51,7 +51,9 @@ public class Input
     public SearchDereference SearchDereference { get; set; }
 
     /// <summary>
-    /// The maximum number of search results to return for a search request.
+    /// The maximum number of search results to return. 
+    /// This acts as a hard limit—regardless of page size or batch size, no more than this number of results will be returned.
+    /// Set to 0 for no limit.
     /// </summary>
     /// <example>1000</example>
     [DefaultValue(1000)]
@@ -59,12 +61,15 @@ public class Input
 
     /// <summary>
     /// The number of results to return in a batch. Specifying 0 means to block until all results are received. Specifying 1 means to return results one result at a time.
+    /// This does not control how many results the server fetches at once, but how results are grouped when returned.
     /// </summary>
     /// <example>1</example>
     [DefaultValue(1)]
     public int BatchSize { get; set; }
     /// <summary>
-    /// Specifies how large the page should be for paged results.
+    /// Controls how many entries are requested from the server in a single page during a paged LDAP search.
+    /// This directly affects how results are fetched from the server.
+    /// If set to 0, paging is disabled and all entries are requested in a single operation (not recommended for large directories).
     /// </summary>
     /// <example>1</example>
     [DefaultValue(500)]
