@@ -80,7 +80,7 @@ public class LDAP
             using var conn = new LdapConnection(ldco);
             conn.SecureSocketLayer = connection.SecureSocketLayer;
             conn.Connect(connection.Host, connection.Port == 0 ? defaultPort : connection.Port);
-            
+
             if (connection.TLS)
                 conn.StartTls();
 
@@ -88,7 +88,7 @@ public class LDAP
                 conn.Bind(version: ldapVersion, dn: null, passwd: (string)null);
             else
                 conn.Bind(version: ldapVersion, connection.User, connection.Password);
-            
+
             byte[] cookie = null;
 
             do
