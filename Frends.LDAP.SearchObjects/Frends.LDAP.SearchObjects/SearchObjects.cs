@@ -1,6 +1,7 @@
 ﻿using Frends.LDAP.SearchObjects.Definitions;
 using System.ComponentModel;
 using Novell.Directory.Ldap;
+using Novell.Directory.Ldap.Controls;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -41,10 +42,10 @@ public class LDAP
         if (connection.IgnoreCertificates)
             ldco.ConfigureRemoteCertificateValidationCallback((sender, certificate, chain, errors) => true);
 
-        LdapConnection conn = new LdapConnection(ldco);
         var defaultPort = connection.SecureSocketLayer ? 636 : 389;
         var atr = new List<string>();
         var searchResults = new List<SearchResult>();
+
         var searchConstraints = new LdapSearchConstraints(
                 input.MsLimit,
                 input.ServerTimeLimit,
@@ -53,7 +54,8 @@ public class LDAP
                 false,
                 input.BatchSize,
                 null,
-                0);
+                0
+        );
 
         if (input.Attributes != null && input.SearchOnlySpecifiedAttributes)
             foreach (var i in input.Attributes)
@@ -75,8 +77,10 @@ public class LDAP
 
         try
         {
+            using var conn = new LdapConnection(ldco);
             conn.SecureSocketLayer = connection.SecureSocketLayer;
             conn.Connect(connection.Host, connection.Port == 0 ? defaultPort : connection.Port);
+
             if (connection.TLS)
                 conn.StartTls();
 
@@ -85,35 +89,28 @@ public class LDAP
             else
                 conn.Bind(version: ldapVersion, connection.User, connection.Password);
 
-            LdapSearchQueue queue = conn.Search(
-                input.SearchBase,
-                SetScope(input),
-                string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
-                atr.ToArray(),
-                input.TypesOnly,
-                null,
-                searchConstraints);
+            byte[] cookie = null;
 
-            LdapMessage message;
-            while ((message = queue.GetResponse()) != null)
+            do
             {
-                if (message is LdapSearchResult ldapSearchResult)
+                if (input.PageSize > 0)
                 {
-                    var entry = ldapSearchResult.Entry;
-                    var attributeDict = new Dictionary<string, dynamic>();
-                    var getAttributeSet = entry.GetAttributeSet();
-                    var ienum = getAttributeSet.GetEnumerator();
-
-                    while (ienum.MoveNext())
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        LdapAttribute attribute = ienum.Current;
-                        AddAttributeValueToList(input, attribute, attributeDict, encoding, cancellationToken);
-                    }
-
-                    searchResults.Add(new SearchResult() { DistinguishedName = entry.Dn, AttributeSet = attributeDict });
+                    var pagedResultsControl = new SimplePagedResultsControl(input.PageSize, cookie);
+                    searchConstraints.SetControls(pagedResultsControl);
                 }
-            }
+
+                LdapSearchQueue queue = conn.Search(
+                    input.SearchBase,
+                    SetScope(input),
+                    string.IsNullOrEmpty(input.Filter) ? null : input.Filter,
+                    atr.ToArray(),
+                    input.TypesOnly,
+                    null,
+                    searchConstraints);
+
+                ProcessSearchResults(queue, searchResults, cancellationToken, encoding, input, ref cookie);
+            } while (cookie != null && cookie.Length > 0);
+
             return new Result(true, null, searchResults);
         }
         catch (LdapException ex)
@@ -124,12 +121,47 @@ public class LDAP
         }
         catch (Exception ex)
         {
-            throw new Exception($"SearchObjects error: {ex}");
+            throw new Exception("SearchObjects error", ex);
         }
-        finally
+    }
+
+    private static void ProcessSearchResults(LdapSearchQueue queue, List<SearchResult> searchResults, CancellationToken cancellationToken, Encoding encoding, Input input, ref byte[] cookie)
+    {
+        LdapMessage message;
+        while ((message = queue.GetResponse()) != null)
         {
-            if (connection.TLS) conn.StopTls();
-            conn.Disconnect();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (message is LdapSearchResult ldapSearchResult)
+            {
+                var entry = ldapSearchResult.Entry;
+                var attributeDict = new Dictionary<string, dynamic>();
+                var getAttributeSet = entry.GetAttributeSet();
+                var ienum = getAttributeSet.GetEnumerator();
+
+                while (ienum.MoveNext())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    LdapAttribute attribute = ienum.Current;
+                    AddAttributeValueToList(input, attribute, attributeDict, encoding, cancellationToken);
+                }
+
+                searchResults.Add(new SearchResult() { DistinguishedName = entry.Dn, AttributeSet = attributeDict });
+            }
+            else if (message is LdapResponse ldapResponse)
+            {
+                var controls = ldapResponse.Controls;
+                if (controls != null)
+                {
+                    foreach (var control in controls)
+                    {
+                        if (control is SimplePagedResultsControl pagedResultsResponse)
+                        {
+                            cookie = pagedResultsResponse.Cookie;
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -367,6 +367,7 @@ public class UnitTests
             SearchDereference = SearchDereference.DerefNever,
             MaxResults = default,
             BatchSize = default,
+            PageSize = 500,
             TypesOnly = default,
             Attributes = null,
         };
@@ -556,5 +557,59 @@ public class UnitTests
         }
 
         conn.Disconnect();
+    }
+
+    [TestMethod]
+    public void Search_MaxResults_LessThanAvailable_ReturnsLimitedResults()
+    {
+        input = new()
+        {
+            SearchBase = _path,
+            Scope = Scopes.ScopeSub,
+            Filter = null,
+            MaxResults = 2,
+            PageSize = 3,
+        };
+
+        var result = LDAP.SearchObjects(input, connection, default);
+
+        Assert.IsTrue(result.Success, "Search failed.");
+        Assert.AreEqual(2, result.SearchResult.Count, "Should return only 2 results.");
+    }
+
+    [TestMethod]
+    public void Search_PageSizeSmallerThanTotal_ShouldReturnAll()
+    {
+        input = new()
+        {
+            SearchBase = _path,
+            Scope = Scopes.ScopeSub,
+            Filter = null,
+            MaxResults = 5,
+            PageSize = 2,
+        };
+
+        var result = LDAP.SearchObjects(input, connection, default);
+
+        Assert.IsTrue(result.Success, "Search failed.");
+        Assert.AreEqual(5, result.SearchResult.Count, "Should return all 5 results using paging.");
+    }
+
+    [TestMethod]
+    public void Search_PageSizeZero_DisablesPaging()
+    {
+        input = new()
+        {
+            SearchBase = _path,
+            Scope = Scopes.ScopeSub,
+            Filter = null,
+            MaxResults = 5,
+            PageSize = 0, // No paging
+        };
+
+        var result = LDAP.SearchObjects(input, connection, default);
+
+        Assert.IsTrue(result.Success, "Search failed.");
+        Assert.AreEqual(5, result.SearchResult.Count, "Should return all 5 results without paging.");
     }
 }
