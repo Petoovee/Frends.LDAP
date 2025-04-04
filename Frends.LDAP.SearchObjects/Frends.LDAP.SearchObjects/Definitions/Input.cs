@@ -60,12 +60,12 @@ public class Input
     public int MaxResults { get; set; }
 
     /// <summary>
-    /// The number of results to return in a batch. Specifying 0 means to block until all results are received. Specifying 1 means to return results one result at a time.
-    /// This does not control how many results the server fetches at once, but how results are grouped when returned.
+    /// This parameter controls the chunk size in which data will be read from the server. This does not affect the output result amount.
     /// </summary>
     /// <example>1</example>
-    [DefaultValue(1)]
+    [DefaultValue(100)]
     public int BatchSize { get; set; }
+
     /// <summary>
     /// Controls how many entries are requested from the server in a single page during a paged LDAP search.
     /// This directly affects how results are fetched from the server.
@@ -74,6 +74,7 @@ public class Input
     /// <example>1</example>
     [DefaultValue(500)]
     public int PageSize { get; set; }
+
     /// <summary>
     /// If true, returns the names but not the values of the attributes found. 
     /// If false, returns the names and values for attributes found.

@@ -121,7 +121,7 @@ public class LDAP
         }
         catch (Exception ex)
         {
-            throw new Exception($"SearchObjects error: {ex}");
+            throw new Exception("SearchObjects error", ex);
         }
     }
 
