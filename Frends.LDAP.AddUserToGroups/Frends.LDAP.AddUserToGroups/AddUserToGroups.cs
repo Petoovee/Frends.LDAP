@@ -31,6 +31,7 @@ public class LDAP
         try
         {
             var defaultPort = connection.SecureSocketLayer ? 636 : 389;
+            conn.SecureSocketLayer = connection.SecureSocketLayer;
 
             await conn.ConnectAsync(connection.Host, connection.Port == 0 ? defaultPort : connection.Port, cancellationToken);
 
@@ -71,31 +72,16 @@ public class LDAP
     {
         try
         {
-            // Get the group entry directly
             LdapEntry groupEntry = await connection.ReadAsync(groupDn, cancellationToken);
-
-            // Check if the member attribute exists
             LdapAttribute memberAttr = groupEntry.Get("member");
-            if (memberAttr == null)
-                return false;
 
             // Check if the user is listed in the member attribute
             string[] members = memberAttr.StringValueArray;
             return members.Contains(userDn);
         }
-        catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchObject)
-        {
-            // Group doesn't exist
-            return false;
-        }
         catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchAttribute)
         {
-            // Group exists but has no member attribute
-            return false;
-        }
-        catch (LdapException)
-        {
-            // Other LDAP errors
+            // Group exists but has no member attribute, so user is not in the group
             return false;
         }
     }

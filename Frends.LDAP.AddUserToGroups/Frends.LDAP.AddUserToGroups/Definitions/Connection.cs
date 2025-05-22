@@ -20,13 +20,13 @@ public class Connection
     public int Port { get; set; }
 
     /// <summary>
-    /// Perform secure operation.
+    /// Do not use with TLS.
     /// </summary>
     /// <example>true</example>
     public bool SecureSocketLayer { get; set; }
 
     /// <summary>
-    /// Connection is protected by TLS.
+    /// Connection is protected by TLS. Do not use with SecureSocketLayer.
     /// </summary>
     /// <example>true</example>
     public bool TLS { get; set; }
