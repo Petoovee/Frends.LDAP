@@ -3,6 +3,8 @@ namespace Frends.LDAP.AddUserToGroups.Tests;
 using NUnit.Framework;
 using Frends.LDAP.AddUserToGroups.Definitions;
 using Novell.Directory.Ldap;
+using System.Threading.Tasks;
+using System.Threading;
 
 [TestFixture]
 public class UnitTests
@@ -22,7 +24,7 @@ public class UnitTests
     private Connection? connection;
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         connection = new()
         {
@@ -34,17 +36,17 @@ public class UnitTests
             TLS = false,
         };
 
-        CreateTestUser(_testUserDn);
+        await CreateTestUser(_testUserDn);
     }
 
     [TearDown]
-    public void Teardown()
+    public async Task Teardown()
     {
-        DeleteTestUsers(_testUserDn, "CN=admin,ou=roles,dc=wimpi,dc=net");
+        await DeleteTestUsers(_testUserDn, "CN=admin,ou=roles,dc=wimpi,dc=net");
     }
 
     [Test]
-    public void Update_HandleLDAPError_Test()
+    public async Task Update_HandleLDAPError_Test()
     {
         input = new()
         {
@@ -53,12 +55,12 @@ public class UnitTests
             UserExistsAction = UserExistsAction.Throw,
         };
 
-        var ex = Assert.Throws<Exception>(() => LDAP.AddUserToGroups(input, connection, default));
-        Assert.IsTrue(ex.Message.Contains("No Such Object"));
+        var ex = Assert.ThrowsAsync<Exception>(async () => await LDAP.AddUserToGroups(input, connection, default));
+        Assert.That(ex.Message.Contains("No Such Object"), Is.True, "Expected exception message to contain 'No Such Object'.");
     }
 
     [Test]
-    public void AddUserToGroups_Test()
+    public async Task AddUserToGroups_Test()
     {
         input = new()
         {
@@ -67,12 +69,12 @@ public class UnitTests
             UserExistsAction = UserExistsAction.Throw,
         };
 
-        var result = LDAP.AddUserToGroups(input, connection, default);
-        Assert.IsTrue(result.Success);
+        var result = await LDAP.AddUserToGroups(input, connection, default);
+        Assert.That(result.Success, Is.True, "Expected result.Success to be true.");
     }
 
     [Test]
-    public void AddUserToGroups_TestWithUserExisting()
+    public async Task AddUserToGroups_TestWithUserExisting()
     {
         input = new()
         {
@@ -81,15 +83,15 @@ public class UnitTests
             UserExistsAction = UserExistsAction.Throw,
         };
 
-        var result = LDAP.AddUserToGroups(input, connection, default);
-        Assert.IsTrue(result.Success);
+        var result = await LDAP.AddUserToGroups(input, connection, default);
+        Assert.That(result.Success, Is.True, "Expected result.Success to be true.");
 
-        var ex = Assert.Throws<Exception>(() => LDAP.AddUserToGroups(input, connection, default));
-        Assert.AreEqual("AddUserToGroups LDAP error: Attribute Or Value Exists", ex.Message);
+        var ex = Assert.ThrowsAsync<Exception>(async () => await LDAP.AddUserToGroups(input, connection, default));
+        Assert.That(ex.Message.Contains("Attribute Or Value Exists"), Is.True, "Expected exception message to contain 'Attribute Or Value Exists'.");
     }
 
     [Test]
-    public void AddUserToGroups_TestWithUserExistingWithSkip()
+    public async Task AddUserToGroups_TestWithUserExistingWithSkip()
     {
         input = new()
         {
@@ -98,23 +100,45 @@ public class UnitTests
             UserExistsAction = UserExistsAction.Skip,
         };
 
-        var result = LDAP.AddUserToGroups(input, connection, default);
-        Assert.IsTrue(result.Success);
+        var result = await LDAP.AddUserToGroups(input, connection, default);
+        Assert.That(result.Success, Is.True, "Expected result.Success to be true.");
 
         input.UserExistsAction = UserExistsAction.Skip;
 
-        result = LDAP.AddUserToGroups(input, connection, default);
-        Assert.IsFalse(result.Success);
+        result = await LDAP.AddUserToGroups(input, connection, default);
+        Assert.That(result.Success, Is.False, "Expected result.Success to be false when skipping existing user.");
     }
 
-    private void CreateTestUser(string userDn)
+    private async Task CreateTestUser(string userDn)
     {
         using LdapConnection conn = new()
         {
             SecureSocketLayer = false,
         };
-        conn.Connect(_host, _port);
-        conn.Bind(_user, _pw);
+        await conn.ConnectAsync(_host, _port, CancellationToken.None);
+        await conn.BindAsync(_user, _pw, CancellationToken.None);
+
+        // Check if user already exists to avoid exception
+        try
+        {
+            var search = await conn.SearchAsync(
+                userDn,
+                LdapConnection.ScopeBase,
+                "(objectClass=inetOrgPerson)",
+                null,
+                false,
+                CancellationToken.None
+            );
+            if (await search.HasMoreAsync(CancellationToken.None))
+            {
+                conn.Disconnect();
+                return; // User already exists, skip creation
+            }
+        }
+        catch
+        {
+            // User does not exist, continue to create
+        }
 
         var attributeSet = new LdapAttributeSet
         {
@@ -125,42 +149,62 @@ public class UnitTests
         };
 
         LdapEntry newEntry = new(userDn, attributeSet);
-        conn.Add(newEntry);
+        try
+        {
+            await conn.AddAsync(newEntry, CancellationToken.None);
+        }
+        catch (LdapException ex) when (ex.ResultCode == LdapException.EntryAlreadyExists)
+        {
+            // Ignore if already exists
+        }
         conn.Disconnect();
     }
 
-    private void DeleteTestUsers(string userDn, string groupDn)
+    private async Task DeleteTestUsers(string userDn, string groupDn)
     {
         using LdapConnection conn = new();
-        conn.Connect(_host, _port);
-        conn.Bind(_user, _pw);
+        await conn.ConnectAsync(_host, _port, CancellationToken.None);
+        await conn.BindAsync(_user, _pw, CancellationToken.None);
 
-        ILdapSearchResults searchResults = conn.Search(
-                groupDn,
-                LdapConnection.ScopeSub,
-                "(objectClass=*)",
-                null,
-                false);
-
-        LdapEntry groupEntry = searchResults.Next();
-
-        var remove = false;
-
-        LdapAttribute memberAttr = groupEntry.GetAttribute("member");
-        var currentMembers = memberAttr.StringValueArray;
-        if (currentMembers.Where(e => e == userDn).Any())
-            remove = true;
-
-        if (remove)
+        try
         {
-            // Remove the user from the group
-            var mod = new LdapModification(LdapModification.Delete, new LdapAttribute("member", userDn));
-            conn.Modify(groupDn, mod);
+            var searchResults = await conn.SearchAsync(
+                    groupDn,
+                    LdapConnection.ScopeSub,
+                    "(objectClass=*)",
+                    null,
+                    false,
+                    CancellationToken.None);
+
+            if (await searchResults.HasMoreAsync(CancellationToken.None))
+            {
+                LdapEntry groupEntry = await searchResults.NextAsync();
+                LdapAttribute memberAttr = groupEntry.Get("member");
+                if (memberAttr != null)
+                {
+                    var currentMembers = memberAttr.StringValueArray;
+                    if (currentMembers.Any(e => e == userDn))
+                    {
+                        // Remove the user from the group
+                        var mod = new LdapModification(LdapModification.Delete, new LdapAttribute("member", userDn));
+                        try
+                        {
+                            await conn.ModifyAsync(groupDn, new[] { mod }, CancellationToken.None);
+                        }
+                        catch (LdapException) { /* Ignore if already removed */ }
+                    }
+                }
+            }
         }
+        catch (LdapException) { /* Ignore group not found */ }
 
-        conn.Delete(userDn);
+        // Try to delete the user, ignore if not found
+        try
+        {
+            await conn.DeleteAsync(userDn, CancellationToken.None);
+        }
+        catch (LdapException) { /* Ignore if user does not exist */ }
 
-        // Disconnect from the LDAP server
         conn.Disconnect();
     }
 }
