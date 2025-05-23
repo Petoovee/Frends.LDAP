@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Frends.LDAP.AddUserToGroups;
 
@@ -43,7 +44,7 @@ public class LDAP
             if (await UserExistsInGroup(conn, input.UserDistinguishedName, input.GroupDistinguishedName, cancellationToken))
             {
                 if (input.UserExistsAction == UserExistsAction.Skip)
-                    return new Result(false, "AddUserToGroups LDAP error: User already exists in the group.", input.UserDistinguishedName, input.GroupDistinguishedName);
+                    return new Result(true, "AddUserToGroups LDAP error: User already exists in the group.", input.UserDistinguishedName, input.GroupDistinguishedName);
                 // If action is Throw, we'll continue and let LDAP throw the exception
             }
 
@@ -53,13 +54,11 @@ public class LDAP
 
             return new Result(true, null, input.UserDistinguishedName, input.GroupDistinguishedName);
         }
-        catch (LdapException ex)
+        catch (LdapException ex) when (ex.ResultCode == LdapException.EntryAlreadyExists)
         {
-            throw new Exception($"AddUserToGroups LDAP error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"AddUserToGroups error: {ex}");
+            if (input.UserExistsAction == UserExistsAction.Throw)
+                throw new Exception($"AddUserToGroups LDAP error: User already exists in the group. {ex.Message}");
+            return new Result(true, "AddUserToGroups LDAP error: User already exists in the group.", input.UserDistinguishedName, input.GroupDistinguishedName);
         }
         finally
         {
@@ -81,7 +80,12 @@ public class LDAP
         }
         catch (LdapException ex) when (ex.ResultCode == LdapException.NoSuchAttribute)
         {
-            // Group exists but has no member attribute, so user is not in the group
+            // Group exists but has no member attribute, so user is probably not in the group
+            return false;
+        }
+        catch (KeyNotFoundException ex) when (ex.Message.Contains("member"))
+        {
+            // Group exists but has no member attribute, so user is probably not in the group
             return false;
         }
     }
